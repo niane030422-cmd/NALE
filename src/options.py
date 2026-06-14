@@ -10,7 +10,6 @@ class Options:
         self.initialize()
 
     def initialize(self):
-        # basic parameters
         self.parser.add_argument(
             "--output_dir", type=str, default="./checkpoint/my_experiments", help="models are saved here"
         )
@@ -69,7 +68,6 @@ class Options:
         self.parser.add_argument("--pooling", type=str, default="average")
         self.parser.add_argument("--random_init", action="store_true", help="init model with random weights")
 
-        # dataset parameters
         self.parser.add_argument("--per_gpu_batch_size", default=64, type=int, help="Batch size per GPU for training.")
         self.parser.add_argument(
             "--per_gpu_eval_batch_size", default=256, type=int, help="Batch size per GPU for evaluation."
@@ -80,7 +78,6 @@ class Options:
         self.parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
         self.parser.add_argument("--main_port", type=int, default=10001, help="Master port (for multi-node SLURM jobs)")
         self.parser.add_argument("--seed", type=int, default=0, help="random seed for initialization")
-        # training parameters
         self.parser.add_argument("--optim", type=str, default="adamw")
         self.parser.add_argument("--scheduler", type=str, default="linear")
         self.parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
@@ -104,7 +101,6 @@ class Options:
         self.parser.add_argument("--maxload", type=int, default=None)
         self.parser.add_argument("--label_smoothing", type=float, default=0.0)
 
-        # finetuning options
         self.parser.add_argument("--negative_ctxs", type=int, default=1)
         self.parser.add_argument("--negative_hard_min_idx", type=int, default=0)
         self.parser.add_argument("--negative_hard_ratio", type=float, default=0.0)
@@ -128,5 +124,4 @@ class Options:
 
     def parse(self):
         opt, _ = self.parser.parse_known_args()
-        # opt = self.parser.parse_args()
         return opt

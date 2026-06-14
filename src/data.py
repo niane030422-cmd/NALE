@@ -223,7 +223,6 @@ def add_bos_eos(x, bos_token_id, eos_token_id):
     return x
 
 
-# Used for passage retrieval
 def load_passages(path):
     if not os.path.exists(path):
         logger.info(f"{path} does not exist")

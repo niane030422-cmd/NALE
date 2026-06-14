@@ -46,7 +46,7 @@ def symlink_force(target, link_name):
 def save(model, optimizer, scheduler, step, opt, dir_path, name):
     model_to_save = model.module if hasattr(model, "module") else model
     path = os.path.join(dir_path, "checkpoint")
-    epoch_path = os.path.join(path, name)  # "step-%s" % step)
+    epoch_path = os.path.join(path, name)
     os.makedirs(epoch_path, exist_ok=True)
     cp = os.path.join(path, "latest")
     fp = os.path.join(epoch_path, "checkpoint.pth")
@@ -83,9 +83,6 @@ def load(model_class, dir_path, opt, reset_params=False):
         optimizer, scheduler = set_optim(opt, model)
 
     return model, optimizer, scheduler, opt_checkpoint, step
-
-
-############ OPTIM
 
 
 class WarmupLinearScheduler(torch.optim.lr_scheduler.LambdaLR):

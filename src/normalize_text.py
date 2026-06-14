@@ -156,7 +156,4 @@ def normalize(text):
     for slash in SLASHES:
         text = text.replace(slash, '/')
 
-    #for tilde in TILDES:
-    #    text = text.replace(tilde, '~')
-
     return text

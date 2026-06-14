@@ -21,7 +21,7 @@ class MoCo(nn.Module):
         self.label_smoothing = opt.label_smoothing
         self.norm_doc = opt.norm_doc
         self.norm_query = opt.norm_query
-        self.moco_train_mode_encoder_k = opt.moco_train_mode_encoder_k  # apply the encoder on keys in train mode
+        self.moco_train_mode_encoder_k = opt.moco_train_mode_encoder_k
 
         retriever, tokenizer = self._load_retriever(
             opt.retriever_model_id, pooling=opt.pooling, random_init=opt.random_init
@@ -35,7 +35,6 @@ class MoCo(nn.Module):
             param_k.data.copy_(param_q.data)
             param_k.requires_grad = False
 
-        # create the queue
         self.register_buffer("queue", torch.randn(opt.projection_size, self.queue_size))
         self.queue = nn.functional.normalize(self.queue, dim=0)
 
@@ -80,17 +79,15 @@ class MoCo(nn.Module):
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
-        # gather keys before updating queue
         keys = dist_utils.gather_nograd(keys.contiguous())
 
         batch_size = keys.shape[0]
 
         ptr = int(self.queue_ptr)
-        assert self.queue_size % batch_size == 0, f"{batch_size}, {self.queue_size}"  # for simplicity
+        assert self.queue_size % batch_size == 0, f"{batch_size}, {self.queue_size}"
 
-        # replace the keys at ptr (dequeue and enqueue)
         self.queue[:, ptr : ptr + batch_size] = keys.T
-        ptr = (ptr + batch_size) % self.queue_size  # move pointer
+        ptr = (ptr + batch_size) % self.queue_size
 
         self.queue_ptr[0] = ptr
 
@@ -106,9 +103,8 @@ class MoCo(nn.Module):
 
         q = self.encoder_q(input_ids=q_tokens, attention_mask=q_mask, normalize=self.norm_query)
 
-        # compute key features
-        with torch.no_grad():  # no gradient to keys
-            self._momentum_update_key_encoder()  # update the key encoder
+        with torch.no_grad():
+            self._momentum_update_key_encoder()
 
             if not self.encoder_k.training and not self.moco_train_mode_encoder_k:
                 self.encoder_k.eval()
@@ -117,14 +113,12 @@ class MoCo(nn.Module):
 
         logits = self._compute_logits(q, k) / self.temperature
 
-        # labels: positive key indicators
         labels = torch.zeros(bsz, dtype=torch.long).cuda()
 
         loss = torch.nn.functional.cross_entropy(logits, labels, label_smoothing=self.label_smoothing)
 
         self._dequeue_and_enqueue(k)
 
-        # log stats
         if len(stats_prefix) > 0:
             stats_prefix = stats_prefix + "/"
         iter_stats[f"{stats_prefix}loss"] = (loss.item(), bsz)

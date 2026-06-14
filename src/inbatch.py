@@ -74,7 +74,6 @@ class InBatch(nn.Module):
 
         loss = torch.nn.functional.cross_entropy(scores, labels, label_smoothing=self.label_smoothing)
 
-        # log stats
         if len(stats_prefix) > 0:
             stats_prefix = stats_prefix + "/"
         iter_stats[f"{stats_prefix}loss"] = (loss.item(), bsz)

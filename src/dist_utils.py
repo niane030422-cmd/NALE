@@ -43,7 +43,6 @@ def varsize_gather_nograd(x: torch.Tensor):
     if not dist.is_initialized():
         return x
 
-    # determine max size
     size = torch.tensor([x.shape[0]], device=x.device, dtype=torch.int)
     allsizes = [torch.zeros_like(size) for _ in range(dist.get_world_size())]
     dist.all_gather(allsizes, size)
@@ -66,7 +65,6 @@ def get_varsize(x: torch.Tensor):
     if not dist.is_initialized():
         return [x.shape[0]]
 
-    # determine max size
     size = torch.tensor([x.shape[0]], device=x.device, dtype=torch.int)
     allsizes = [torch.zeros_like(size) for _ in range(dist.get_world_size())]
     dist.all_gather(allsizes, size)
