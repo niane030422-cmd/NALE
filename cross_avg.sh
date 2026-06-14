@@ -12,9 +12,6 @@ do
     current_output="${out_dir}/${i}"
     mkdir -p "$current_output"
 
-    # 运行 Python 脚本
-    # 注意：这里假设你的脚本接受参数的方式是 --input 和 --output
-    # 如果你的脚本是直接按顺序接收参数，请改为: python "$python_script" "$current_input" "$current_output"
     python "$python_script" --results_root "$current_input" --out_dir "$current_output"
 
     echo "--------------------------------------"
