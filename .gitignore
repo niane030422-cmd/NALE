@@ -1,0 +1,32 @@
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local environments and secrets
+.env
+.env.*
+.venv/
+venv/
+
+# Generated outputs
+results/
+logs/
+avg_results/
+llm_results/
+contriver_evalresults/
+
+# Exported artifacts
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.jsonl
+*.log
+
+# Model weights and checkpoints
+*.bin
+*.pt
+*.pth
+*.ckpt
