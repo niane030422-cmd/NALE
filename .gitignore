@@ -17,6 +17,9 @@ avg_results/
 llm_results/
 contriver_evalresults/
 
+# Local metric calculation scripts
+metrics/
+
 # Exported artifacts
 *.pdf
 *.png

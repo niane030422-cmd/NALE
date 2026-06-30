@@ -36,6 +36,7 @@ import numpy as np
 
 from src.contriever import Contriever,M3contriver
 
+from llm.gpt import GPT
 from llm.hf import Aya, Qwen
 
 import re
@@ -122,7 +123,7 @@ def set_seed(seed):
 
     torch.backends.cudnn.deterministic = True
 
-def sort_documents_by_similarity(contriever, tokenizer, sentence, documents, top_n):
+def sort_documents_by_similarity(contriever, tokenizer, sentence, documents, top_n, end_to_end=False):
 
     if tokenizer is not None :
 
@@ -150,7 +151,7 @@ def sort_documents_by_similarity(contriever, tokenizer, sentence, documents, top
 
         from rank_bm25 import BM25Okapi
 
-        tokenized_corpus = [doc.split(" ") for doc in deocuments]
+        tokenized_corpus = [doc.split(" ") for doc in documents]
 
         bm25 = BM25Okapi(tokenized_corpus)
 
@@ -166,17 +167,19 @@ def sort_documents_by_similarity(contriever, tokenizer, sentence, documents, top
 
     top_n_ids = sorted_indices[:top_n]
 
-    if 0 in top_n_ids:
+    if not end_to_end:
 
-        top_n_ids.remove(0)
+        if 0 in top_n_ids:
 
-    if len(top_n_ids) == top_n:
+            top_n_ids.remove(0)
 
-        top_n_ids = [0] +  top_n_ids[:-1]
+        if len(top_n_ids) == top_n:
 
-    else:
+            top_n_ids = [0] +  top_n_ids[:-1]
 
-        top_n_ids = [0] +  top_n_ids
+        else:
+
+            top_n_ids = [0] +  top_n_ids
 
     sorted_documents = [documents[idx] for idx in top_n_ids]
 
@@ -192,7 +195,7 @@ def split_into_sentence(text):
 
     return sentences
 
-def split_into_chunks(document, label, chunk_num, mode, noise_rate, noise_doc, contriever, con_tok, query, lang, tokenizer, chunk_size=200):
+def split_into_chunks(document, label, chunk_num, mode, noise_rate, noise_doc, contriever, con_tok, query, lang, tokenizer, chunk_size=200, end_to_end=False):
 
     current_chunk = ""
 
@@ -246,11 +249,13 @@ def split_into_chunks(document, label, chunk_num, mode, noise_rate, noise_doc, c
 
         label = str(label)
 
-    return_chunks = sort_documents_by_similarity(contriever, con_tok, query+' '+ label, chunks, top_n=chunk_num)
+    retrieval_query = query if end_to_end else query+' '+ label
+
+    return_chunks = sort_documents_by_similarity(contriever, con_tok, retrieval_query, chunks, top_n=chunk_num, end_to_end=end_to_end)
 
     return return_chunks
 
-def processdata(instance, noise_rate, chunk_num, filename, language, mode="golden", noise_doc='', contriever=None, con_tok=None,  tokenizer=None):
+def processdata(instance, noise_rate, chunk_num, filename, language, mode="golden", noise_doc='', contriever=None, con_tok=None,  tokenizer=None, end_to_end=False):
 
     query = instance["QA"][f'Q'].replace('،', ',')
 
@@ -268,7 +273,7 @@ def processdata(instance, noise_rate, chunk_num, filename, language, mode="golde
 
     docs = instance['doc']
 
-    docs = split_into_chunks(docs, ori_ans, chunk_num, mode, noise_rate, noise_doc, contriever, con_tok, query=ori_lang_query, lang=ori_lang, tokenizer=tokenizer)
+    docs = split_into_chunks(docs, ori_ans, chunk_num, mode, noise_rate, noise_doc, contriever, con_tok, query=ori_lang_query, lang=ori_lang, tokenizer=tokenizer, end_to_end=end_to_end)
 
     if not isinstance(docs, list):
 
@@ -456,6 +461,14 @@ if __name__ == '__main__':
 
     parser.add_argument(
 
+        '--end_to_end', action='store_true',
+
+        help='use query-only retrieval and do not force chunk 0 into Top-K'
+
+    )
+
+    parser.add_argument(
+
         '--seed', type=int, default=233,
 
         help='random_seed'
@@ -502,7 +515,9 @@ if __name__ == '__main__':
 
     args.dataset = args.dataset.split('/')[-1].replace('json', '')
 
-    resultpath = f'./results/cross_lingual/{args.dataset}_{args.description}/new_golden_loosen'
+    retrieval_suffix = '_end2end' if args.end_to_end else ''
+
+    resultpath = f'./results/cross_lingual/{args.dataset}_{args.description}/new_golden_loosen{retrieval_suffix}'
 
     if not os.path.exists(f'./results/'):
 
@@ -588,7 +603,7 @@ if __name__ == '__main__':
 
     resultpath = resultpath+f'/{contriever_name}'
 
-    filename = f'{resultpath}/prediction_n_{args.dataset}_{contriever_name}_ql{args.language}_dl{args.doc_lang}_{modelname}_noise{args.noise_rate}_chunk{args.chunk_num}.json'
+    filename = f'{resultpath}/prediction_n_{args.dataset}_{contriever_name}_ql{args.language}_dl{args.doc_lang}_{modelname}_noise{args.noise_rate}_chunk{args.chunk_num}{retrieval_suffix}.json'
 
     results = []
 
@@ -638,7 +653,9 @@ if __name__ == '__main__':
 
                     con_tok=con_tok,
 
-                    tokenizer=model_tokenizer
+                    tokenizer=model_tokenizer,
+
+                    end_to_end=args.end_to_end
 
                 )
 
@@ -674,7 +691,9 @@ if __name__ == '__main__':
 
                 f'docs': docs,
 
-                f'noise_rate': args.noise_rate
+                f'noise_rate': args.noise_rate,
+
+                f'end_to_end': args.end_to_end
 
             }
 
@@ -704,10 +723,12 @@ if __name__ == '__main__':
 
     'noise_rate': args.noise_rate,
 
+    'end_to_end': args.end_to_end,
+
     'nums': len(results),
 
     }
 
-    json.dump(scores,open(f'{resultpath}/prediction_{contriever_name}_{args.dataset}_ql{args.language}_dl{args.doc_lang}_{modelname}_noise{args.noise_rate}_chunk{args.chunk_num}_seed{args.seed}_result.json','w'),ensure_ascii=False,indent=4)
+    json.dump(scores,open(f'{resultpath}/prediction_{contriever_name}_{args.dataset}_ql{args.language}_dl{args.doc_lang}_{modelname}_noise{args.noise_rate}_chunk{args.chunk_num}_seed{args.seed}{retrieval_suffix}_result.json','w'),ensure_ascii=False,indent=4)
 
     print ('Done')
