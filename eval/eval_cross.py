@@ -304,7 +304,7 @@ def compare_texts(text1, text2, lang):
 
     return ngram_res
 
-def checkanswer(prediction, lang_gt, lang):
+def checkanswer(prediction, lang_gt, lang, answer_match_mode="loosen"):
 
     prediction = (prediction or "").lower()
 
@@ -319,6 +319,10 @@ def checkanswer(prediction, lang_gt, lang):
             lst.extend([fill] * (n - len(lst)))
 
     for k, gt in lang_gt.items():
+
+        if answer_match_mode == "strict" and k != lang:
+
+            continue
 
         gt_list = gt if isinstance(gt, list) else [gt]
 
@@ -350,7 +354,7 @@ def checkanswer(prediction, lang_gt, lang):
 
     return ngram_label, code_switch_ngram
 
-def predict(query, ground_truth, docs, model, system, instruction, dataset, language):
+def predict(query, ground_truth, docs, model, system, instruction, dataset, language, answer_match_mode="loosen"):
 
     if len(docs) == 0:
 
@@ -394,7 +398,7 @@ def predict(query, ground_truth, docs, model, system, instruction, dataset, lang
 
     else:
 
-        ngram, code_switch_ngram = checkanswer(prediction, ground_truth, language)
+        ngram, code_switch_ngram = checkanswer(prediction, ground_truth, language, answer_match_mode=answer_match_mode)
 
     return ngram, code_switch_ngram, prediction
 
@@ -500,6 +504,16 @@ if __name__ == '__main__':
 
     )
 
+    parser.add_argument(
+
+        '--answer_match_mode', type=str, default='loosen',
+
+        choices=['loosen', 'strict'],
+
+        help='loosen checks answers across languages; strict only checks the query language answer'
+
+    )
+
     args = parser.parse_args()
 
     doc_id = 0
@@ -542,7 +556,7 @@ if __name__ == '__main__':
 
     retrieval_suffix = '' if args.retrieval_setting == 'given_gt' else '_end2end'
 
-    resultpath = f'./results/cross_lingual/{args.dataset}_{args.description}/original_loosen{retrieval_suffix}'
+    resultpath = f'./results/cross_lingual/{args.dataset}_{args.description}/original_{args.answer_match_mode}{retrieval_suffix}'
 
     os.makedirs(resultpath+f'/{modelname}', exist_ok=True)
 
@@ -680,7 +694,7 @@ if __name__ == '__main__':
 
             ans = new_ans
 
-            ngram, code_switch_ngram, prediction = predict(query, ans, docs, model,system,instruction,args.dataset, args.language)
+            ngram, code_switch_ngram, prediction = predict(query, ans, docs, model,system,instruction,args.dataset, args.language, answer_match_mode=args.answer_match_mode)
 
             newinstance = {
 
@@ -700,7 +714,9 @@ if __name__ == '__main__':
 
                 f'noise_rate': args.noise_rate,
 
-                f'retrieval_setting': args.retrieval_setting
+                f'retrieval_setting': args.retrieval_setting,
+
+                f'answer_match_mode': args.answer_match_mode
 
             }
 
@@ -731,6 +747,8 @@ if __name__ == '__main__':
     'noise_rate': args.noise_rate,
 
     'retrieval_setting': args.retrieval_setting,
+
+    'answer_match_mode': args.answer_match_mode,
 
     'nums': len(results),
 

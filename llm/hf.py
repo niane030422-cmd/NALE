@@ -10,7 +10,7 @@ from vllm import LLM, SamplingParams
 
 from public_repo import model_path_from_env, require_env
 
-def cut_off(text, tokenizer, max_len=8092):
+def cut_off(text, tokenizer, max_len=8192):
 
     tokens = tokenizer.encode(text)
     if len(tokens) <= max_len:
@@ -43,7 +43,7 @@ class Aya():
     def get_llm_tokenizer(self):
         return self.tokenizer
 
-    def chat(self, prompt, temperature=0.8, max_tokens=1024):
+    def chat(self, prompt, temperature=0.8, max_tokens=8192):
         prompt = cut_off(prompt, self.tokenizer)
         messages = [{"role": "user", "content": prompt}]
         input_ids = self.tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_tensors="pt").to(self.model.device)
@@ -77,7 +77,7 @@ class Qwen:
     def get_llm_tokenizer(self):
         return self.tokenizer
 
-    def chat(self, prompt, temperature=0.8, max_tokens=256):
+    def chat(self, prompt, temperature=0.8, max_tokens=8192):
         prompt = cut_off(prompt, self.tokenizer)
         messages = [{"role": "user", "content": prompt}]
         text = self.tokenizer.apply_chat_template(

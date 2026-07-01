@@ -7,7 +7,7 @@ import tiktoken
 
 from public_repo import require_env
 
-def cut_off(text, tokenizer, max_len=8092):
+def cut_off(text, tokenizer, max_len=8192):
 
     tokens = tokenizer.encode(text)
     if len(tokens) <= max_len:
@@ -49,7 +49,7 @@ class GPT():
         prompt: Optional[str] = None,
         messages: Optional[List[Dict]] = None,
         stop: Optional[List[str]] = None,
-        max_tokens: int = 100,
+        max_tokens: int = 8192,
         n: int = 1,
         temperature: float = 0.8,
         top_p: int = 1,
