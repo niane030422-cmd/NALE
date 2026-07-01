@@ -19,7 +19,7 @@ eval/
 instructions/                       # prompt templates
 llm/                                # GPT, Aya, and Qwen wrappers
 process_ete_document.py             # merge documents before end-to-end evaluation
-run_github_readme_examples.sh        # runnable command examples
+run.sh                               # runnable command examples
 ```
 
 ## Setup
@@ -239,7 +239,7 @@ python3 eval/eval_contriver_multi.py \
 The repository includes a bash file with all major commands:
 
 ```bash
-./run_github_readme_examples.sh
+./run.sh
 ```
 
 Override defaults with environment variables:
@@ -250,7 +250,7 @@ CONTRIEVER_PATH=bm25 \
 QUERY_LANG=en \
 DOC_LANG=zh \
 CHUNK_NUM=5 \
-./run_github_readme_examples.sh
+./run.sh
 ```
 
 ## Outputs
@@ -276,6 +276,5 @@ results/cross_lingual/MRAG_dataset._lang_specific/original_loosen_end2end/
 ## Notes
 
 - `max_tokens` and prompt truncation are set to `8192` in `llm/`.
-- `metrics/` is intentionally ignored and not uploaded to the public GitHub repository.
 - `given_gt` is useful for controlled evaluation with answer-aware retrieval.
 - `end2end` is the realistic RAG setting with query-only retrieval.
