@@ -1,8 +1,8 @@
 # Futurepedia
 
-This repository contains the benchmark and evaluation code for Futurepedia, a multilingual retrieval-augmented language model (RALM) benchmark built from parallel texts in eight representative languages. Futurepedia is designed to study how retrieval and language choice affect multilingual knowledge use.
+Futurepedia is a multilingual retrieval-augmented language model (RALM) benchmark built from parallel texts in eight representative languages.
 
-Using Futurepedia, we evaluate three retrievers and six LLMs across three tasks: monolingual knowledge extraction, cross-lingual knowledge transfer, and multilingual knowledge selection. Our results show that dense retrievers are more robust in cross-lingual settings, while sparse retrievers show larger performance gaps across languages. In ground-truth context settings, LLMs still exhibit clear language inequalities: typologically distant languages underperform in monolingual extraction, Indo-European languages and Chinese better support direct answer extraction for cross-lingual transfer, and English dominates multilingual selection because of model bias. In end-to-end RAG, same-language retrieval supports strong monolingual performance, cross-lingual transfer depends more on the model than on scale, and multilingual selection remains unbalanced across evidence languages.
+This repository provides the dataset and evaluation code for three tasks: monolingual knowledge extraction, cross-lingual knowledge transfer, and multilingual knowledge selection. It includes scripts for evaluating retrievers and LLMs in both ground-truth context and end-to-end RAG settings.
 
 ## Repository Layout
 
