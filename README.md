@@ -214,7 +214,62 @@ python3 eval/eval_multi.py \
 
 ## Retriever Evaluation
 
-Cross-lingual retriever recall:
+`eval_contriver.py` is used for the retriever-only experiments in the paper. The batch script used for these runs has two modes:
+
+```text
+FIXED_K=""   # k-analysis mode: evaluate recall@1..20 for monolingual pairs only, where query language == document language
+FIXED_K="5"  # cross-lingual mode: evaluate recall@5 for all query-language x document-language combinations
+```
+
+In both modes, the retriever is the outer loop so that all results for one retriever are completed before moving to the next retriever. The evaluated languages are:
+
+```text
+en ko zh fr es pt ar ja
+```
+
+The cross-lingual retriever recall run used in the paper corresponds to:
+
+```bash
+BASE="$(pwd)"
+DATASET="${BASE}/data/MRAG_dataset.json"
+SAVE_BASE="${BASE}/contriver_evalresults/cross"
+FIXED_K="5"
+
+contriever_paths=(
+  "${BASE}/models/BAAI/bge-m3"
+  "bm25"
+  "${BASE}/models/facebook/mcontriever-msmarco"
+)
+
+languages=("en" "ko" "zh" "fr" "es" "pt" "ar" "ja")
+
+for contriever_path in "${contriever_paths[@]}"; do
+  contriever_name="$(basename "${contriever_path}")"
+  for lang in "${languages[@]}"; do
+    for doc_lang in "${languages[@]}"; do
+      save_path="${SAVE_BASE}/${contriever_name}/${lang}_ql${lang}_dl${doc_lang}_recall.jsonl"
+      mkdir -p "$(dirname "${save_path}")"
+
+      CUDA_VISIBLE_DEVICES=0,1,2,3 python "${BASE}/eval/eval_contriver.py" \
+        --dataset "${DATASET}" \
+        --language "${lang}" \
+        --doc_lang "${doc_lang}" \
+        --contriever_path "${contriever_path}" \
+        --chunk_size 200 \
+        --fixed_k "${FIXED_K}" \
+        --save_path "${save_path}"
+    done
+  done
+done
+```
+
+For the k-value analysis, use the same script structure but set `FIXED_K=""`, set `SAVE_BASE="${BASE}/contriver_evalresults/check_k"`, and replace `--fixed_k "${FIXED_K}"` with `--max_k 20`. In this mode, only monolingual pairs are evaluated:
+
+```text
+query language == document language
+```
+
+Single cross-lingual retriever recall example:
 
 ```bash
 python3 eval/eval_contriver.py \
