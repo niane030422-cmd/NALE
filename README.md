@@ -24,7 +24,11 @@ run.sh                               # runnable command examples
 
 ## Setup
 
-Install the Python dependencies required by the models and retrievers you plan to run. The code uses packages such as `torch`, `transformers`, `vllm`, `openai`, `tiktoken`, `rank_bm25`, `numpy`, `pandas`, `matplotlib`, `tqdm`, and `pyyaml`.
+Install the Python dependencies required by the models and retrievers you plan to run:
+
+```bash
+pip install -r requirements.txt
+```
 
 For OpenAI-compatible GPT models:
 
@@ -44,11 +48,11 @@ Retriever paths can be either `bm25`, a local `mcontriever-msmarco` checkpoint p
 
 ## Core Evaluation Settings
 
-Most RAG scripts support two retrieval settings:
+Most RAG scripts support two retrieval settings. In the code, this setting controls `force_first_chunk`:
 
 ```text
-given_gt  # query + ground-truth answer retrieval; forces chunk 0 into Top-K
-end2end   # query-only retrieval; uses the retriever Top-K directly
+given_gt  # sets force_first_chunk=True, so the if force_first_chunk block runs and chunk 0 is forced into Top-K
+end2end   # sets force_first_chunk=False, so the retriever Top-K is used directly
 ```
 
 `eval_cross.py` also supports two answer matching modes:
@@ -276,5 +280,5 @@ results/cross_lingual/MRAG_dataset._lang_specific/original_loosen_end2end/
 ## Notes
 
 - `max_tokens` and prompt truncation are set to `8192` in `llm/`.
-- `given_gt` is useful for controlled evaluation with answer-aware retrieval.
-- `end2end` is the realistic RAG setting with query-only retrieval.
+- `given_gt` executes the `if force_first_chunk:` block and forces chunk 0 into Top-K.
+- `end2end` skips the `if force_first_chunk:` block and uses the retriever Top-K directly.

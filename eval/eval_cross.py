@@ -200,19 +200,15 @@ def split_into_sentence(text):
 
 def get_retrieval_query(query, label, retrieval_setting):
 
-    if retrieval_setting == "given_gt":
+    if isinstance(label, list):
 
-        if isinstance(label, list):
+        label = " ".join(map(str, label))
 
-            label = " ".join(map(str, label))
+    else:
 
-        else:
+        label = str(label)
 
-            label = str(label)
-
-        return f"{query} {label}"
-
-    return query
+    return f"{query} {label}"
 
 def split_into_chunks(document, label, chunk_num, mode, noise_rate, noise_doc, contriever, con_tok, query, lang, tokenizer, chunk_size=200, force_first_chunk=True, retrieval_setting="given_gt"):
 
@@ -500,7 +496,7 @@ if __name__ == '__main__':
 
         choices=['given_gt', 'end2end'],
 
-        help='given_gt uses query+GT and forces chunk 0 into Top-K; end2end uses query-only retrieval and the retriever Top-K directly'
+        help='given_gt sets force_first_chunk=True and runs the if force_first_chunk block; end2end sets force_first_chunk=False and uses retriever Top-K directly'
 
     )
 

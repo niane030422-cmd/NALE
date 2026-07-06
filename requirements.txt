@@ -1,0 +1,16 @@
+accelerate
+beir
+matplotlib
+numpy
+openai
+pandas
+pyyaml
+rank-bm25
+regex
+requests
+stanza
+tiktoken
+torch
+tqdm
+transformers
+vllm
