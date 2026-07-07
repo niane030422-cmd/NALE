@@ -83,6 +83,9 @@ def build_pool_for_lang(all_docs, lang, tokenizer, chunk_size=200):
                 seen.add(chunk)
                 pool.append(chunk)
     return pool
+def bm25_tokenize(text: str, tokenizer) -> List[str]:
+    token_ids = tokenizer.encode(str(text), add_special_tokens=False)
+    return tokenizer.convert_ids_to_tokens(token_ids)
 @torch.no_grad()
 def encode_texts(model, tokenizer, texts, device, batch_size=128, show_progress=False, desc="encode"):
     embs = []
@@ -182,7 +185,7 @@ def main():
     pool_emb = None
     if contriever_name == "bm25":
         from rank_bm25 import BM25Okapi
-        bm25 = BM25Okapi([doc.split(" ") for doc in larger_pool])
+        bm25 = BM25Okapi([bm25_tokenize(doc, chunk_tokenizer) for doc in larger_pool])
     elif con_tok is not None:
         print("Encoding global pool once ...")
         pool_emb = encode_texts(contriever, con_tok, larger_pool, device,
@@ -194,7 +197,7 @@ def main():
         elif contriever is not None and con_tok is None:
             scores = torch.from_numpy(contriever(query, larger_pool))
         else:
-            scores = torch.tensor(bm25.get_scores(query.split(" ")), dtype=torch.float)
+            scores = torch.tensor(bm25.get_scores(bm25_tokenize(query, chunk_tokenizer)), dtype=torch.float)
         return torch.argsort(scores, descending=True).cpu().numpy().tolist()
     recall_sums = {k: 0.0 for k in k_values}
     used = 0

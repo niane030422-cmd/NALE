@@ -78,6 +78,9 @@ def build_chunks(document: str, tokenizer, lang: str, chunk_size: int = 200) -> 
             cur, cur_tok = sent + joiner, len(toks)
     flush()
     return chunks
+def bm25_tokenize(text: str, tokenizer) -> List[str]:
+    token_ids = tokenizer.encode(str(text), add_special_tokens=False)
+    return tokenizer.convert_ids_to_tokens(token_ids)
 @torch.no_grad()
 def encode_texts(model, tokenizer, texts, device, batch_size=128, show_progress=False, desc="encode"):
     embs = []
@@ -94,7 +97,7 @@ def rank_with_pool_emb(model, tokenizer, query, pool_emb, device, batch_size=128
     q_emb = encode_texts(model, tokenizer, [query], device, batch_size)[0]
     scores = torch.matmul(pool_emb, q_emb)
     return torch.argsort(scores, descending=True).cpu().numpy().tolist()
-def sort_documents_by_similarity(contriever, con_tok, query, documents, device="cpu", batch_size=128):
+def sort_documents_by_similarity(contriever, con_tok, query, documents, device="cpu", batch_size=128, bm25_tokenizer=None):
     if con_tok is not None and contriever is not None:
         q_emb = encode_texts(contriever, con_tok, [query], device, batch_size)[0]
         d_emb = encode_texts(contriever, con_tok, documents, device, batch_size)
@@ -103,8 +106,10 @@ def sort_documents_by_similarity(contriever, con_tok, query, documents, device="
         scores = torch.from_numpy(contriever(query, documents))
     else:
         from rank_bm25 import BM25Okapi
-        bm25 = BM25Okapi([doc.split(" ") for doc in documents])
-        scores = torch.tensor(bm25.get_scores(query.split(" ")), dtype=torch.float)
+        if bm25_tokenizer is None:
+            raise ValueError("bm25_tokenizer is required for BM25 ranking.")
+        bm25 = BM25Okapi([bm25_tokenize(doc, bm25_tokenizer) for doc in documents])
+        scores = torch.tensor(bm25.get_scores(bm25_tokenize(query, bm25_tokenizer)), dtype=torch.float)
     return torch.argsort(scores, descending=True).cpu().numpy().tolist()
 def hit_answer_type(chunk_text, chunk_lang, q_lang, ori_answer, new_answer):
     ch = normalize_text(chunk_text)
@@ -187,7 +192,7 @@ def main():
         from rank_bm25 import BM25Okapi
         for d_lang in LANGS:
             if global_chunks_by_lang[d_lang]:
-                bm25_by_lang[d_lang] = BM25Okapi([doc.split(" ") for doc in global_chunks_by_lang[d_lang]])
+                bm25_by_lang[d_lang] = BM25Okapi([bm25_tokenize(doc, chunk_tokenizer) for doc in global_chunks_by_lang[d_lang]])
     elif con_tok is not None:
         for d_lang in LANGS:
             if global_chunks_by_lang[d_lang]:
@@ -200,7 +205,7 @@ def main():
         elif contriever is not None and con_tok is None:
             return sort_documents_by_similarity(contriever, None, query, global_chunks_by_lang[d_lang], device, args.batch_size)
         else:
-            scores = torch.tensor(bm25_by_lang[d_lang].get_scores(query.split(" ")), dtype=torch.float)
+            scores = torch.tensor(bm25_by_lang[d_lang].get_scores(bm25_tokenize(query, chunk_tokenizer)), dtype=torch.float)
             return torch.argsort(scores, descending=True).cpu().numpy().tolist()
     lang_share_sum = {q: {d: 0.0 for d in LANGS} for q in LANGS}
     lang_share_cnt = {q: 0 for q in LANGS}
@@ -227,7 +232,9 @@ def main():
                     combined_langs.append(d_lang)
             if not combined_chunks:
                 continue
-            ranked_ids = sort_documents_by_similarity(contriever, con_tok, query, combined_chunks, device, args.batch_size)
+            ranked_ids = sort_documents_by_similarity(
+                contriever, con_tok, query, combined_chunks, device, args.batch_size,
+                bm25_tokenizer=chunk_tokenizer if contriever_name == "bm25" else None)
             top_ids = ranked_ids[: min(args.top_k, len(ranked_ids))]
             pool_chunks, pool_langs = combined_chunks, combined_langs
             top_langs = [pool_langs[i] for i in top_ids]
